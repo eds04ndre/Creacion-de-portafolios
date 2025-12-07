@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import streamlit as st
 import scipy.optimize as op
 import sf_library as sfl      # Nuestra libreria
 
@@ -16,7 +17,7 @@ tickers = [
 all_returns = []   # Lista donde se guardará un DataFrame por activo
 
 for ticker in tickers:
-    t = sfl.daily_return(ticker, data_dir="MarketData")      # Cargar retornos
+    t = sfl.daily_return(ticker, data_dir="./MarketData")      # Cargar retornos
     t = t[['date', 'return']].rename(columns={'return': ticker})  # Renombramos la columna return por el ticker
     all_returns.append(t)   # Lo guardamos en la lista
 
@@ -170,19 +171,23 @@ w_opt, r_opt, vol_opt = min_variance_given_return(target)
 # RESULTADOS
 # =====================================================================
 
-def print_portfolio(name, weights, ret, vol):
-    print(f"\n=== {name} ===")
-    print("Ticker  |   Peso asignado")
-    print("--------------------------")
-    for t, w in zip(tickers, weights):
-        print(f"{t:<6} | {w:.4f}")   # formatea pesos a 4 decimales
-    print("Retorno esperado anual:", ret)
-    print("Volatilidad anual:", vol)
+def print_portfolio_st(name, tickers, weights, ret, vol):
+    st.subheader(name)
+
+    df = pd.DataFrame({
+        "Ticker": tickers,
+        "Peso asignado": [f"{w:.4f}" for w in weights]
+    })
+
+    st.table(df)
+
+    st.write(f"**Retorno esperado anual:** {ret:.4f}")
+    st.write(f"**Volatilidad anual:** {vol:.4f}")
 
 
 # Imprimir resultados con tickers
-print_portfolio("Portafolio Mínima Varianza", w_min, ret_min, vol_min)
-print_portfolio("Portafolio Máximo Retorno", w_ret, ret_mx, vol_mx)
-print_portfolio("Portafolio Máximo Sharpe", w_sharpe, ret_s, vol_s)
-print_portfolio("Portafolio Máximo Sharpe_12%", w_opt, r_opt, vol_opt)
+# print_portfolio_st("Portafolio Mínima Varianza", tickers, w_min, ret_min, vol_min)
+# print_portfolio_st("Portafolio Máximo Retorno", tickers, w_ret, ret_mx, vol_mx)
+# print_portfolio_st("Portafolio Máximo Sharpe", tickers, w_sharpe, ret_s, vol_s)
+# print_portfolio_st("Portafolio Máximo Sharpe 12%", tickers, w_opt, r_opt, vol_opt)
 

@@ -1,5 +1,7 @@
 import streamlit as st
 import yfinance as yf
+import numpy as np
+import pandas as pd
 from scipy.stats import skew
 from scipy.stats import kurtosis
 
@@ -15,13 +17,13 @@ tickers_sectores = ["XLC","XLY","XLP","XLE","XLF",
 data_regiones = yf.download(tickers_regiones, period="4y")["Close"]
 data_sectores = yf.download(tickers_sectores, period="4y")["Close"]
 
-print("Precios por Regiones:")
-st.write(data_regiones.tail())
-print(data_regiones.tail())
+#st.write("Precios por Regiones:")
+#st.write(data_regiones.tail())
+#st.write(data_regiones.tail())
 
-print("\nPrecios por Sectores:")
-st.write(data_regiones.tail())
-print(data_sectores.tail())
+#st.write("\nPrecios por Sectores:")
+#st.write(data_regiones.tail())
+#st.write(data_sectores.tail())
 
 # Rendimientos diarios para REGIONES
 retorno_regiones = data_regiones.pct_change().dropna()
@@ -29,11 +31,11 @@ retorno_regiones = data_regiones.pct_change().dropna()
 # Rendimientos diarios para SECTORES
 retorno_sectores = data_sectores.pct_change().dropna()
 
-print("Rendimientos REGIONES:")
-st.write(retorno_regiones.head())
+#st.write("Rendimientos REGIONES:")
+#st.write(retorno_regiones.head())
 
-print("\nRendimientos SECTORES:")
-st.write(retorno_sectores.head())
+#st.write("\nRendimientos SECTORES:")
+#st.write(retorno_sectores.head())
 
 #Pesos benchmark por REGIONES
 pesos_regiones={"SPLG":0.7062,
@@ -71,11 +73,11 @@ portafolio_regiones = (retorno_regiones * p_regiones).sum(axis=1)
 
 portafolio_sectores = (retorno_sectores * p_sectores).sum(axis=1)
 
-print("Retorno del portafolio REGIONES (primeros días):")
-st.write(portafolio_regiones.head())
+#st.write("Retorno del portafolio REGIONES (primeros días):")
+#st.write(portafolio_regiones.head())
 
-print("\nRetorno portafolio SECTORES (primeros días):")
-st.write(portafolio_sectores.head())
+#st.write("\nRetorno portafolio SECTORES (primeros días):")
+#st.write(portafolio_sectores.head())
 
 def beta(port, benchmark):
     cov = np.cov(port, benchmark)[0,1]
@@ -147,6 +149,38 @@ df_metrics = pd.DataFrame({
 })
 
 
-#df_metrics = df_metrics.round(6)
+st.title("Creación de portafolios")
 
-st.write(df_metrics)
+
+def page_1():
+    st.header("Regional", divider=True)
+
+    option = st.selectbox(
+    "Elige el tipo de portafolio:",
+    ("Portafolio Arbitrario", "Portafolio Optimizado", "Portafolio Black Litterman"),
+    index=None
+    )
+
+    if option == "Portafolio Arbitrario":
+        st.subheader("Portafolio Arbitrario")
+        st.write(df_metrics)
+    elif option == "Portafolio Optimizado":
+        st.subheader("Portafolio Optimizado")
+        st.write(df_metrics)
+
+def page_2():
+    st.header("Regiones", divider=True)
+
+    col = st.columns((1.5, 4.5, 2), gap='medium')
+
+    with col[0]:
+        st.markdown('#### Gains/Losses')
+
+    with col[1]:
+        st.markdown('#### Total Population')
+
+    with col[2]:
+        st.markdown('#### Top States')
+
+pg = st.navigation([page_1, page_2])
+pg.run()
