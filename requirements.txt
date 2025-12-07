@@ -1,6 +1,2 @@
-scikit.learn
-matplotlib
-plotly
-scipy
 pyportfolioopt
 yfinance
