@@ -2,6 +2,8 @@ import streamlit as st
 import yfinance as yf
 import pandas as pd
 import numpy as np
+from scipy.stats import skew
+from scipy.stats import kurtosis
 
 # ETFs de la estrategia 1: REGIONES DEL MUNDO
 tickers_regiones = ["SPLG", "EWC", "IEUR", "EEM", "EWJ"]
@@ -16,11 +18,11 @@ data_regiones = yf.download(tickers_regiones, period="4y")["Close"]
 data_sectores = yf.download(tickers_sectores, period="4y")["Close"]
 
 print("Precios por Regiones:")
-#display(data_regiones.tail())
+st.write(data_regiones.tail())
 print(data_regiones.tail())
 
 print("\nPrecios por Sectores:")
-#display(data_regiones.tail())
+#st.write(data_regiones.tail())
 print(data_sectores.tail())
 
 # Rendimientos diarios para REGIONES
@@ -30,10 +32,10 @@ retorno_regiones = data_regiones.pct_change().dropna()
 retorno_sectores = data_sectores.pct_change().dropna()
 
 print("Rendimientos REGIONES:")
-display(retorno_regiones.head())
+#st.write(retorno_regiones.head())
 
 print("\nRendimientos SECTORES:")
-display(retorno_sectores.head())
+#st.write(retorno_sectores.head())
 
 #Pesos benchmark por REGIONES
 pesos_regiones={"SPLG":0.7062,
@@ -72,10 +74,10 @@ portafolio_regiones = (retorno_regiones * p_regiones).sum(axis=1)
 portafolio_sectores = (retorno_sectores * p_sectores).sum(axis=1)
 
 print("Retorno del portafolio REGIONES (primeros días):")
-display(portafolio_regiones.head())
+st.write(portafolio_regiones.head())
 
 print("\nRetorno portafolio SECTORES (primeros días):")
-display(portafolio_sectores.head())
+st.write(portafolio_sectores.head())
 
 def beta(port, benchmark):
     cov = np.cov(port, benchmark)[0,1]
@@ -149,4 +151,4 @@ df_metrics = pd.DataFrame({
 
 #df_metrics = df_metrics.round(6)
 
-display(df_metrics)
+st.write(df_metrics)
