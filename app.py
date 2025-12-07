@@ -1,7 +1,5 @@
 import streamlit as st
 import yfinance as yf
-import pandas as pd
-import numpy as np
 from scipy.stats import skew
 from scipy.stats import kurtosis
 
@@ -22,7 +20,7 @@ st.write(data_regiones.tail())
 print(data_regiones.tail())
 
 print("\nPrecios por Sectores:")
-#st.write(data_regiones.tail())
+st.write(data_regiones.tail())
 print(data_sectores.tail())
 
 # Rendimientos diarios para REGIONES
@@ -32,10 +30,10 @@ retorno_regiones = data_regiones.pct_change().dropna()
 retorno_sectores = data_sectores.pct_change().dropna()
 
 print("Rendimientos REGIONES:")
-#st.write(retorno_regiones.head())
+st.write(retorno_regiones.head())
 
 print("\nRendimientos SECTORES:")
-#st.write(retorno_sectores.head())
+st.write(retorno_sectores.head())
 
 #Pesos benchmark por REGIONES
 pesos_regiones={"SPLG":0.7062,
