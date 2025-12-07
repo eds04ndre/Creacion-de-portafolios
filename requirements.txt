@@ -1,3 +1,6 @@
-pyportfolioopt
-yfinance
+streamlit
+pandas
+numpy
 scipy
+yfinance
+#pyportfolioopt
