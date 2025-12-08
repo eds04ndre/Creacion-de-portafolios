@@ -1,7 +1,10 @@
 import yfinance as yf
 import pandas as pd
+import numpy as np
 import os
 from datetime import datetime
+from scipy.stats import skew
+from scipy.stats import kurtosis
 
 def descargar_tickers(tickers, carpeta='MarketData', start='2000-01-01', end=None):
     """
@@ -91,51 +94,6 @@ def daily_return(ticker, data_dir="MarketData"):
 
     return df
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 def sync_timeseries(tickers, data_dir="MarketData"):
     """
     Carga y sincroniza series temporales de retornos diarios para varios tickers.
@@ -190,5 +148,67 @@ def sync_timeseries(tickers, data_dir="MarketData"):
 
     return df, mtx_var_covar, mtx_correl
 
+def beta(port, benchmark):
+    cov = np.cov(port, benchmark, ddof=0)[0,1]
+    var = np.var(benchmark)
+    return cov / var
 
+def media(r):
+    return r.mean()
 
+def volatilidad(r):
+    return r.std()
+
+def sharpe(r, rf=0.0):
+    excess = r - rf/252
+    return np.sqrt(252) * excess.mean() / excess.std()
+
+def sortino(r, rf=0.0):
+    excess = r - rf/252
+    downside = excess[excess < 0].std()
+    return np.sqrt(252) * excess.mean() / downside
+
+def max_drawdown(r):
+    cum = (1 + r).cumprod()
+    peak = cum.cummax()
+    dd = (cum - peak) / peak
+    return dd.min()
+
+def var_95(r):
+    return np.percentile(r, 5)
+
+def cvar_95(r):
+    v = var_95(r)
+    return r[r <= v].mean()
+
+def sesgo(r):
+    return skew(r)
+
+def curtosis(r):
+    return kurtosis(r)
+
+def construir_portafolio(data, pesos):
+    retornos_df = data.pct_change().dropna()
+    pesos = np.array(pesos, dtype=float)
+    pesos = pesos / pesos.sum()
+    portafolio = (retornos_df * pesos).sum(axis=1)
+    return portafolio
+
+# Función para calcular métricas (aquí simularemos con valores aleatorios)
+def calcular_metricas_portfolio(portafolio, benchmark):
+    # AQUÍ DEBES IMPLEMENTAR TUS CÁLCULOS REALES
+    metricas = {
+        'rendimiento': 10000,
+        'volatilidad': portafolio.std(),
+        'beta': beta(portafolio, benchmark),
+        'sharpe': sharpe(portafolio, rf=0.05),
+        'sortino': sortino(portafolio, rf=0.05),
+        'max_drawdown': max_drawdown(portafolio),
+        'var': var_95(portafolio),
+        'cvar': cvar_95(portafolio),
+        'sesgo': sesgo(portafolio),
+        'curtosis': curtosis(portafolio),
+        'rend_positivos': 10000,
+        'delta_benchmark': 10000
+    }
+    return metricas

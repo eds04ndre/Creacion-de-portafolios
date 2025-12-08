@@ -172,22 +172,22 @@ w_opt, r_opt, vol_opt = min_variance_given_return(target)
 # =====================================================================
 
 def print_portfolio_st(name, tickers, weights, ret, vol):
-    st.subheader(name)
+    print(name)
 
     df = pd.DataFrame({
         "Ticker": tickers,
         "Peso asignado": [f"{w:.4f}" for w in weights]
     })
 
-    st.table(df)
+    print(df)
 
-    st.write(f"**Retorno esperado anual:** {ret:.4f}")
-    st.write(f"**Volatilidad anual:** {vol:.4f}")
+    print(f"**Retorno esperado anual:** {ret:.4f}")
+    print(f"**Volatilidad anual:** {vol:.4f}")
 
 
 # Imprimir resultados con tickers
-# print_portfolio_st("Portafolio Mínima Varianza", tickers, w_min, ret_min, vol_min)
-# print_portfolio_st("Portafolio Máximo Retorno", tickers, w_ret, ret_mx, vol_mx)
-# print_portfolio_st("Portafolio Máximo Sharpe", tickers, w_sharpe, ret_s, vol_s)
-# print_portfolio_st("Portafolio Máximo Sharpe 12%", tickers, w_opt, r_opt, vol_opt)
+print_portfolio_st("Portafolio Mínima Varianza", tickers, w_min, ret_min, vol_min)
+print_portfolio_st("Portafolio Máximo Retorno", tickers, w_ret, ret_mx, vol_mx)
+print_portfolio_st("Portafolio Máximo Sharpe", tickers, w_sharpe, ret_s, vol_s)
+print_portfolio_st("Portafolio Máximo Sharpe 12%", tickers, w_opt, r_opt, vol_opt)
 

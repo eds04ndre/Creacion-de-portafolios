@@ -1,3 +1,0 @@
-Actualizar las funciones:
-optimizar portafolio
-calcular métricas portafolio

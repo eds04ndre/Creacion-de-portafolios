@@ -1,0 +1,16 @@
+Actualizar las funciones:
+
+----Métricas----
+Calcular las métricas faltantes o eliminarlas en su defecto
+Modificar botón "normalizar" en benchmark
+Evaluar si las gráficas se van a utilizar a lo largo de la aplicación
+Evaluar importancia y factibilidad de programar las restricciones en cada apartado
+Lo mismo con delimitar los datos por fecha
+
+----Optimización de portafolios----
+Crear toda la lógica de Markowitz:
+-Mínima varianza
+-Máximo sharpe
+-Markowitz
+
+Inhabilitar la sección de Markowitz
