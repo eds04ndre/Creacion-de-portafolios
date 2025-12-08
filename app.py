@@ -241,9 +241,8 @@ with tab2:
             if not st.session_state.get('optimizacion_realizada', False):
                 st.warning("⚠️ Primero debe optimizar un portafolio en la pestaña 'Optimización'")
                 st.stop()
-            
-            # Usar pesos optimizados (ya están en %)
-            pesos_usar = {k: v/100 for k, v in st.session_state.pesos_optimizados.items()}
+
+            pesos_usar = [v/100 for k, v in st.session_state.pesos_optimizados.items()]
         
         portafolio = sfl.construir_portafolio(datos_estrategia, pesos_usar)
 
