@@ -1,3 +1,4 @@
 pyportfolioopt
 yfinance
 scipy
+plotly
