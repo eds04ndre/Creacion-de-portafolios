@@ -555,13 +555,13 @@ with tab3:
             
             return pesos_dict, metricas, frontera
         
-        if st.button("🚀 Optimizar Portafolio", type="primary", use_container_width=True):
+        if st.button("Optimizar Portafolio", type="primary", use_container_width=True):
             with st.spinner("Optimizando portafolio..."):
                 import time
                 time.sleep(1.5)
                 
                 # Realizar optimización
-                pesos, metricas, frontera = optimizar_portafolio(metodo_opt, list(BENCHMARKS[estrategia].keys()))
+                pesos, metricas, frontera= sfl.optimizar_portafolio(metodo_opt,BENCHMARKS[estrategia].keys(),DATOS_ESTRATEGIA[estrategia], rendimiento_objetivo)
                 
                 st.session_state.pesos_optimizados = pesos
                 st.session_state.metricas_opt = metricas

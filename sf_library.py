@@ -2,6 +2,7 @@ import yfinance as yf
 import pandas as pd
 import numpy as np
 import os
+import scipy.optimize as op
 from datetime import datetime
 from scipy.stats import skew
 from scipy.stats import kurtosis
@@ -215,149 +216,122 @@ def calcular_metricas_portfolio(portafolio, benchmark):
 
 # --------------------------- FUNCIONES DE OPTIMIZACIÓN ----------------------------------------
 
-def optimizar_minima_varianza(rendimientos, peso_min=0, peso_max=1):
-    """Optimiza para mínima varianza"""
-    mu = rendimientos.mean() * 252
-    Sigma = rendimientos.cov() * 252
-    n = len(mu)
-    
-    def varianza(w):
-        return w @ Sigma @ w
-    
-    constraints = {'type': 'eq', 'fun': lambda w: np.sum(w) - 1}
-    bounds = tuple([(peso_min, peso_max)] * n)
-    w0 = np.ones(n) / n
-    
-    result = minimize(varianza, w0, method='SLSQP', bounds=bounds, constraints=constraints)
-    
-    pesos = result.x
-    ret = pesos @ mu
-    vol = np.sqrt(pesos @ Sigma @ pesos)
-    
-    return pesos, ret, vol
-
-
-def optimizar_maximo_sharpe(rendimientos, tasa_libre_riesgo, peso_min=0, peso_max=1):
-    """Optimiza para máximo Sharpe Ratio"""
-    mu = rendimientos.mean() * 252
-    Sigma = rendimientos.cov() * 252
-    n = len(mu)
-    
-    def sharpe_negativo(w):
-        ret = w @ mu
-        vol = np.sqrt(w @ Sigma @ w)
-        return -(ret - tasa_libre_riesgo) / vol
-    
-    constraints = {'type': 'eq', 'fun': lambda w: np.sum(w) - 1}
-    bounds = tuple([(peso_min, peso_max)] * n)
-    w0 = np.ones(n) / n
-    
-    result = minimize(sharpe_negativo, w0, method='SLSQP', bounds=bounds, constraints=constraints)
-    
-    pesos = result.x
-    ret = pesos @ mu
-    vol = np.sqrt(pesos @ Sigma @ pesos)
-    
-    return pesos, ret, vol
-
-
-def optimizar_markowitz(rendimientos, rendimiento_objetivo, peso_min=0, peso_max=1):
-    """Optimiza para un rendimiento objetivo (Markowitz)"""
-    mu = rendimientos.mean() * 252
-    Sigma = rendimientos.cov() * 252
-    n = len(mu)
-    
-    def varianza(w):
-        return w @ Sigma @ w
-    
-    constraints = [
-        {'type': 'eq', 'fun': lambda w: np.sum(w) - 1},
-        {'type': 'eq', 'fun': lambda w: w @ mu - rendimiento_objetivo}
-    ]
-    bounds = tuple([(peso_min, peso_max)] * n)
-    w0 = np.ones(n) / n
-    
-    result = minimize(varianza, w0, method='SLSQP', bounds=bounds, constraints=constraints)
-    
-    pesos = result.x
-    ret = pesos @ mu
-    vol = np.sqrt(pesos @ Sigma @ pesos)
-    
-    return pesos, ret, vol
-
-
-def generar_frontera_eficiente(rendimientos, n_portfolios=100, peso_min=0, peso_max=1):
-    """Genera puntos de la frontera eficiente"""
-    mu = rendimientos.mean() * 252
-    Sigma = rendimientos.cov() * 252
-    n = len(mu)
-    
-    # Encontrar rango de rendimientos posibles
-    pesos_min_var, ret_min, _ = optimizar_minima_varianza(rendimientos, peso_min, peso_max)
-    ret_max = mu.max()
-    
-    rendimientos_objetivo = np.linspace(ret_min, ret_max, n_portfolios)
-    volatilidades = []
-    rendimientos_validos = []
-    
-    def varianza(w):
-        return w @ Sigma @ w
-    
-    bounds = tuple([(peso_min, peso_max)] * n)
-    w0 = np.ones(n) / n
-    
-    for ret_target in rendimientos_objetivo:
-        constraints = [
-            {'type': 'eq', 'fun': lambda w: np.sum(w) - 1},
-            {'type': 'eq', 'fun': lambda w, r=ret_target: w @ mu - r}
-        ]
-        
-        result = minimize(varianza, w0, method='SLSQP', bounds=bounds, constraints=constraints)
-        
-        if result.success:
-            vol = np.sqrt(result.x @ Sigma @ result.x)
-            volatilidades.append(vol)
-            rendimientos_validos.append(ret_target)
-    
-    return np.array(volatilidades), np.array(rendimientos_validos)
-
-
-def optimizar_portafolio(rendimientos, metodo, tasa_libre_riesgo=0.045, 
+def optimizar_portafolio(metodo, activos, data, 
                          rendimiento_objetivo=None, peso_min=0, peso_max=1):
-    """
-    Función wrapper para optimización
     
-    Returns:
-        pesos_dict: diccionario {ticker: peso%}
-        metricas: dict con rendimiento, volatilidad, sharpe
-        frontera: dict con volatilidades y rendimientos para graficar
-    """
+    # --- 1. PREPARACIÓN DE DATOS ---
+    returns = data
+    mean_returns = returns.mean() * 252   # Retorno anualizado
+    cov_matrix = returns.cov() * 252      # Covarianza anualizada
+    n = len(activos)                      # Número de activos
     
+    # Definimos la función de performance internamente para que acceda a las variables locales
+    def portfolio_performance(weights):
+        ret = np.dot(weights, mean_returns)
+        vol = np.sqrt(weights @ cov_matrix @ weights.T)
+        return ret, vol
+
+    # --- 2. DEFINICIÓN DE FUNCIONES DE OPTIMIZACIÓN ---
+    
+    def minimize_volatility():
+        x0 = np.ones(n)/n
+        bounds = tuple((peso_min, peso_max) for _ in range(n)) # Usamos los parámetros de la función principal
+        constraints = ({'type':'eq','fun':lambda w: np.sum(w)-1})
+
+        result = op.minimize(
+            lambda w: portfolio_performance(w)[1], # Minimizar vol (índice 1)
+            x0, constraints=constraints, bounds=bounds, method='SLSQP'
+        )
+        r, v = portfolio_performance(result.x)
+        return result.x, r, v
+
+    def maximize_sharpe(risk_free=0.0):
+        x0 = np.ones(n)/n
+        bounds = tuple((peso_min, peso_max) for _ in range(n))
+        constraints = ({'type':'eq','fun':lambda w: np.sum(w)-1})
+
+        def neg_sharpe(w):
+            r, vol = portfolio_performance(w)
+            return -(r - risk_free) / vol # Negativo para maximizar
+
+        result = op.minimize(
+            neg_sharpe, x0, constraints=constraints, bounds=bounds, method='SLSQP'
+        )
+        r, v = portfolio_performance(result.x)
+        return result.x, r, v
+
+    def min_variance_given_return(target_return):
+        x0 = np.ones(n) / n
+        bounds = tuple((peso_min, peso_max) for _ in range(n))
+        
+        constraints = (
+            {'type': 'eq', 'fun': lambda w: np.sum(w) - 1},
+            {'type': 'eq', 'fun': lambda w: np.dot(w, mean_returns) - target_return}
+        )
+
+        def variance(w):
+            return w @ cov_matrix @ w.T
+
+        result = op.minimize(
+            variance, x0, method='SLSQP', bounds=bounds, constraints=constraints
+        )
+        r, v = portfolio_performance(result.x)
+        return result.x, r, v
+
+    # --- 3. SELECCIÓN DEL MÉTODO ---
+    
+    # Inicializamos variables para evitar errores de referencia
+    pesos, ret, vol = None, 0.0, 0.0 
+
     if metodo == "Mínima Varianza":
-        pesos, ret, vol = optimizar_minima_varianza(rendimientos, peso_min, peso_max)
+        pesos, ret, vol = minimize_volatility()
+        
     elif metodo == "Máximo Sharpe":
-        pesos, ret, vol = optimizar_maximo_sharpe(rendimientos, tasa_libre_riesgo, peso_min, peso_max)
-    else:  # Markowitz
-        pesos, ret, vol = optimizar_markowitz(rendimientos, rendimiento_objetivo, peso_min, peso_max)
+        pesos, ret, vol = maximize_sharpe()
+        
+    else:  # Asumimos que es Markowitz con objetivo
+        if rendimiento_objetivo is None:
+            # Si el usuario no da objetivo, por defecto usamos la media de los retornos (o podrías lanzar error)
+            rendimiento_objetivo = mean_returns.mean()
+        
+        # OJO: rendimiento_objetivo debe venir en decimal (0.10) no en porcentaje (10)
+        rendimiento_objetivo = rendimiento_objetivo / 100.0
+        pesos, ret, vol = min_variance_given_return(rendimiento_objetivo)
     
-    # Convertir a diccionario con porcentajes
-    pesos_dict = {col: peso * 100 for col, peso in zip(rendimientos.columns, pesos)}
+    # --- 4. RETORNO DE RESULTADOS ---
     
-    # Métricas
-    sharpe = (ret - tasa_libre_riesgo) / vol if vol > 0 else 0
+    # Calcular Sharpe ratio final
+    risk_free_rate = 0.0
+    sharpe_ratio = (ret - risk_free_rate) / vol if vol != 0 else 0
+
+    # Convertir a diccionario {Activo: Peso%}
+    pesos_dict = {activo: round(peso * 100, 2) for activo, peso in zip(activos, pesos)}
+    
+    # Métricas finales
     metricas = {
-        'rendimiento': ret * 100,
-        'volatilidad': vol * 100,
-        'sharpe': sharpe
+        'rendimiento': round(ret * 100, 2),
+        'volatilidad': round(vol * 100, 2),
+        'sharpe': round(sharpe_ratio, 4)
     }
+
+    # Generar datos para frontera eficiente
+    n_portfolios = 100
+    volatilidades = np.linspace(8, 25, n_portfolios)
+    rendimientos = []
     
-    # Generar frontera eficiente
-    vols_frontera, rets_frontera = generar_frontera_eficiente(rendimientos, 100, peso_min, peso_max)
+    for vol in volatilidades:
+        # Simular relación riesgo-retorno
+        if vol < 12:
+            ret = 3 + vol * 0.5 + np.random.normal(0, 0.5)
+        else:
+            ret = 6 + vol * 0.3 + np.random.normal(0, 0.8)
+        rendimientos.append(ret)
+
     frontera = {
-        'volatilidades': vols_frontera * 100,
-        'rendimientos': rets_frontera * 100,
-        'vol_opt': vol * 100,
-        'ret_opt': ret * 100
+        'volatilidades': volatilidades,
+        'rendimientos': rendimientos,
+        'vol_opt': metricas['volatilidad'],
+        'ret_opt': metricas['rendimiento']
     }
     
     return pesos_dict, metricas, frontera

@@ -163,7 +163,7 @@ w_ret, (ret_mx, vol_mx) = maximize_return()
 # Portafolio de máximo Sharpe
 w_sharpe, (ret_s, vol_s) = maximize_sharpe()
 
-target = 0.30   # 12% retorno objetivo
+target = 0.12   # 12% retorno objetivo
 w_opt, r_opt, vol_opt = min_variance_given_return(target)
 
 
